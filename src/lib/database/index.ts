@@ -1,65 +1,65 @@
-import { AsyncResultCallback, retry } from 'async'
-import * as knex from 'knex'
-import * as path from 'path'
+import { AsyncResultCallback, retry } from "async";
+import { Knex, knex } from "knex";
+import * as path from "path";
 
 export interface Configuration {
-  host: string
-  port: number
-  user: string
-  password: string
-  database: string
-  debug: boolean
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+  debug: boolean;
 }
 
 export class MySql {
-  private config: Configuration
-  private connection: knex | undefined
-  private retryDbConnectionPromise: Promise<knex> | undefined
+  private config: Configuration;
+  private connection: Knex | undefined;
+  private retryDbConnectionPromise: Promise<Knex> | undefined;
 
   constructor(config: Configuration) {
-    this.config = config
+    this.config = config;
   }
 
-  public async getConnection(): Promise<knex> {
+  public async getConnection(): Promise<Knex> {
     if (!this.connection) {
-      this.connection = await this.retryDbConnection()
+      this.connection = await this.retryDbConnection();
     }
 
-    return this.connection
+    return this.connection;
   }
 
-  public async getTransaction(): Promise<knex.Transaction> {
-    const connection = await this.getConnection()
+  public async getTransaction(): Promise<Knex.Transaction> {
+    const connection = await this.getConnection();
 
-    return new Promise<knex.Transaction>((resolve, reject) => {
+    return new Promise<Knex.Transaction>((resolve, reject) => {
       try {
-        connection.transaction((trx: knex.Transaction) => {
-          resolve(trx)
-        })
+        connection.transaction((trx: Knex.Transaction) => {
+          resolve(trx);
+        });
       } catch (err) {
-        reject(err)
+        reject(err);
       }
-    })
+    });
   }
 
   public async closeDatabase(): Promise<void> {
     if (this.connection) {
-      await this.connection.destroy()
-      this.connection = undefined
+      await this.connection.destroy();
+      this.connection = undefined;
     }
   }
 
   public async schemaMigration() {
-    const connection = await this.getConnection()
+    const connection = await this.getConnection();
 
     await connection.migrate.latest({
-      directory: path.resolve(__dirname, './migrations')
-    })
+      directory: path.resolve(__dirname, "./migrations")
+    });
   }
 
-  private async createConnection(): Promise<knex> {
-    const config: knex.Config = {
-      client: 'mysql2',
+  private async createConnection(): Promise<Knex> {
+    const config: Knex.Config = {
+      client: "mysql2",
       connection: {
         host: this.config.host,
         port: this.config.port,
@@ -69,49 +69,49 @@ export class MySql {
       },
       debug: this.config.debug,
       migrations: {
-        tableName: 'migrations'
+        tableName: "migrations"
       }
-    }
+    };
 
-    const db = knex(config)
+    const db = knex(config);
 
     // Test database connectivity!
-    await db.raw('select 1')
+    await db.raw("select 1");
 
-    return db
+    return db;
   }
 
-  private retryDbConnection(): Promise<knex> {
+  private retryDbConnection(): Promise<Knex> {
     if (this.retryDbConnectionPromise instanceof Promise) {
-      return this.retryDbConnectionPromise
+      return this.retryDbConnectionPromise;
     }
 
-    const methodToRetry = (cb: AsyncResultCallback<knex, Error>) => {
+    const methodToRetry = (cb: AsyncResultCallback<Knex, Error>) => {
       this.createConnection()
-        .then((db: knex) => {
-          cb(undefined, db)
+        .then((db: Knex) => {
+          cb(undefined, db);
         })
         .catch((err: Error) => {
-          cb(err, undefined)
-        })
-    }
+          cb(err, undefined);
+        });
+    };
 
-    this.retryDbConnectionPromise = new Promise<knex>((resolve, reject) => {
+    this.retryDbConnectionPromise = new Promise<Knex>((resolve, reject) => {
       retry(
         { times: 3, interval: 1000 },
         methodToRetry,
-        (err: Error | undefined, db: knex) => {
+        (err: Error | undefined, db: Knex) => {
           if (err) {
-            reject(err)
+            reject(err);
           } else {
-            resolve(db)
+            resolve(db);
           }
 
-          this.retryDbConnectionPromise = undefined
+          this.retryDbConnectionPromise = undefined;
         }
-      )
-    })
+      );
+    });
 
-    return this.retryDbConnectionPromise
+    return this.retryDbConnectionPromise;
   }
 }
