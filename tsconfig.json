@@ -3,7 +3,6 @@
     "outDir": "dist",
     "target": "es2017",
     "module": "commonjs",
-    "sourceMap": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "typeRoots": [
