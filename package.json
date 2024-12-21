@@ -4,7 +4,6 @@
   "description": "A stable and efficient backend for a card game server, built with TypeScript and Koa.",
   "license": "MIT",
   "author": "hanzongyuan",
-  "type": "module",
   "keywords": [
     "typescript",
     "nodejs",
